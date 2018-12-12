@@ -6,6 +6,7 @@ import (
 
 	ic "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
+	itls "github.com/libp2p/go-libp2p-tls"
 	tpt "github.com/libp2p/go-libp2p-transport"
 	quic "github.com/lucas-clemente/quic-go"
 	ma "github.com/multiformats/go-multiaddr"
@@ -73,7 +74,7 @@ func (l *listener) Accept() (tpt.Conn, error) {
 }
 
 func (l *listener) setupConn(sess quic.Session) (tpt.Conn, error) {
-	remotePubKey, err := getRemotePubKey(sess.ConnectionState().PeerCertificates)
+	remotePubKey, err := itls.KeyFromChain(sess.ConnectionState().PeerCertificates)
 	if err != nil {
 		return nil, err
 	}

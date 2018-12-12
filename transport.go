@@ -11,6 +11,7 @@ import (
 
 	ic "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
+	itls "github.com/libp2p/go-libp2p-tls"
 	tpt "github.com/libp2p/go-libp2p-transport"
 	quic "github.com/lucas-clemente/quic-go"
 	ma "github.com/multiformats/go-multiaddr"
@@ -82,7 +83,7 @@ func NewTransport(key ic.PrivKey) (tpt.Transport, error) {
 	if err != nil {
 		return nil, err
 	}
-	tlsConf, err := generateConfig(key)
+	tlsConf, err := itls.NewIdentity(key)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +91,7 @@ func NewTransport(key ic.PrivKey) (tpt.Transport, error) {
 	return &transport{
 		privKey:     key,
 		localPeer:   localPeer,
-		tlsConf:     tlsConf,
+		tlsConf:     tlsConf.Config,
 		connManager: &connManager{},
 	}, nil
 }
@@ -124,7 +125,7 @@ func (t *transport) Dial(ctx context.Context, raddr ma.Multiaddr, p peer.ID) (tp
 			chain[i] = cert
 		}
 		var err error
-		remotePubKey, err = getRemotePubKey(chain)
+		remotePubKey, err = itls.KeyFromChain(chain)
 		if err != nil {
 			return err
 		}
