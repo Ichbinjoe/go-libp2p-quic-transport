@@ -1,16 +1,15 @@
 package libp2pquic
 
 import (
-	"crypto/tls"
 	"net"
 
-	ic "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
-	itls "github.com/libp2p/go-libp2p-tls"
-	tpt "github.com/libp2p/go-libp2p-transport"
-	quic "github.com/lucas-clemente/quic-go"
-	ma "github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr-net"
+	ic "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
+	manet "gx/ipfs/QmQVUtnrNGtCRkCMpXgpApfzQjc8FDaDVxHqWH8cnZQeh5/go-multiaddr-net"
+	ma "gx/ipfs/QmRKLtwMw131aK7ugC3G7ybpumMz78YrJe5dzneyindvG1/go-multiaddr"
+	quic "gx/ipfs/QmU44KWVkSHno7sNDTeUcL4FBgxgoidkFuTUyTXWJPXXFJ/quic-go"
+	tls "gx/ipfs/QmUT6HZJnZhpZPiCtrsBmRnpfbysEgBNJESVQe8wuuezX6/go-libp2p-tls"
+	peer "gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
+	tpt "gx/ipfs/Qmb3qartY8DSgRaBA3Go4EEjY1ZbXhCcvmc4orsBKMjgRg/go-libp2p-transport"
 )
 
 var quicListenAddr = quic.ListenAddr
@@ -27,7 +26,7 @@ type listener struct {
 
 var _ tpt.Listener = &listener{}
 
-func newListener(addr ma.Multiaddr, transport tpt.Transport, localPeer peer.ID, key ic.PrivKey, tlsConf *tls.Config) (tpt.Listener, error) {
+func newListener(addr ma.Multiaddr, transport tpt.Transport, localPeer peer.ID, key ic.PrivKey, identity *tls.Identity) (tpt.Listener, error) {
 	lnet, host, err := manet.DialArgs(addr)
 	if err != nil {
 		return nil, err
@@ -40,7 +39,7 @@ func newListener(addr ma.Multiaddr, transport tpt.Transport, localPeer peer.ID, 
 	if err != nil {
 		return nil, err
 	}
-	ln, err := quic.Listen(conn, tlsConf, quicConfig)
+	ln, err := quic.Listen(conn, identity.Config, quicConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +73,7 @@ func (l *listener) Accept() (tpt.Conn, error) {
 }
 
 func (l *listener) setupConn(sess quic.Session) (tpt.Conn, error) {
-	remotePubKey, err := itls.KeyFromChain(sess.ConnectionState().PeerCertificates)
+	remotePubKey, err := tls.KeyFromChain(sess.ConnectionState().PeerCertificates)
 	if err != nil {
 		return nil, err
 	}

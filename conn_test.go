@@ -10,10 +10,11 @@ import (
 	"io/ioutil"
 	"time"
 
-	ic "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
-	tpt "github.com/libp2p/go-libp2p-transport"
-	ma "github.com/multiformats/go-multiaddr"
+	ic "gx/ipfs/QmNiJiXwWE3kRhZrC5ej3kSjWHm337pYfhjLGSCDNKJP2s/go-libp2p-crypto"
+	ma "gx/ipfs/QmRKLtwMw131aK7ugC3G7ybpumMz78YrJe5dzneyindvG1/go-multiaddr"
+	peer "gx/ipfs/QmY5Grm8pJdiSSVsYxx4uNRgweY72EmYwuSDbRnbFok3iY/go-libp2p-peer"
+	ltls "gx/ipfs/QmUT6HZJnZhpZPiCtrsBmRnpfbysEgBNJESVQe8wuuezX6/go-libp2p-tls"
+	tpt "gx/ipfs/Qmb3qartY8DSgRaBA3Go4EEjY1ZbXhCcvmc4orsBKMjgRg/go-libp2p-transport"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -53,8 +54,10 @@ var _ = Describe("Connection", func() {
 	}
 
 	// modify the cert chain such that verificiation will fail
-	invalidateCertChain := func(tlsConf *tls.Config) {
-		tlsConf.Certificates[0].Certificate = [][]byte{tlsConf.Certificates[0].Certificate[0]}
+	invalidateCertChain := func(tlsConf **tls.Config) {
+		_, invalidKey := createPeer()
+		ident, _ := ltls.NewIdentity(invalidKey)
+		*tlsConf = ident.Config
 	}
 
 	BeforeEach(func() {
@@ -147,7 +150,7 @@ var _ = Describe("Connection", func() {
 		serverAddr, serverConnChan := runServer(serverTransport, "/ip4/127.0.0.1/udp/0/quic")
 
 		clientTransport, err := NewTransport(clientKey)
-		invalidateCertChain(clientTransport.(*transport).tlsConf)
+		invalidateCertChain(&clientTransport.(*transport).identity.Config)
 		Expect(err).ToNot(HaveOccurred())
 		conn, err := clientTransport.Dial(context.Background(), serverAddr, serverID)
 		Expect(err).ToNot(HaveOccurred())
@@ -157,7 +160,7 @@ var _ = Describe("Connection", func() {
 
 	It("fails if the server presents an invalid cert chain", func() {
 		serverTransport, err := NewTransport(serverKey)
-		invalidateCertChain(serverTransport.(*transport).tlsConf)
+		invalidateCertChain(&serverTransport.(*transport).identity.Config)
 		Expect(err).ToNot(HaveOccurred())
 		serverAddr, serverConnChan := runServer(serverTransport, "/ip4/127.0.0.1/udp/0/quic")
 
@@ -176,7 +179,7 @@ var _ = Describe("Connection", func() {
 
 		// first dial with an invalid cert chain
 		clientTransport1, err := NewTransport(clientKey)
-		invalidateCertChain(clientTransport1.(*transport).tlsConf)
+		invalidateCertChain(&clientTransport1.(*transport).identity.Config)
 		Expect(err).ToNot(HaveOccurred())
 		_, err = clientTransport1.Dial(context.Background(), serverAddr, serverID)
 		Expect(err).ToNot(HaveOccurred())
